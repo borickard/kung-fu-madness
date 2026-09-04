@@ -5,7 +5,10 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!url || !anonKey) {
   throw new Error(
-    'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in web/.env.local — `pnpm supabase start` prints both.',
+    'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY. Locally they go in ' +
+      'web/.env.local and `pnpm supabase start` prints both. On a host they are ' +
+      'build-time variables, so they must exist on the project that runs the ' +
+      'build, and the site needs rebuilding after they are added.',
   );
 }
 
