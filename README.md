@@ -77,7 +77,11 @@ pnpm --filter web test
 ```
 
 `supabase/functions/` is Deno, so it sits outside the ESLint and tsc passes.
-Check it with `deno check supabase/functions/**/*.ts` if you have Deno on hand.
+Check it with:
+
+```bash
+deno check --config supabase/functions/deno.json supabase/functions/*/index.ts
+```
 
 ## Where the numbers live
 
