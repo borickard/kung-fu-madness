@@ -24,16 +24,25 @@ pnpm supabase start            # local Postgres + API on :54321, needs Docker
 pnpm supabase db reset         # apply migrations, seed the move catalog
 pnpm gen:types                 # regenerate web/src/lib/database.types.ts
 
-cp web/.env.example web/.env.local   # paste the URL and anon key `supabase start` printed
-pnpm supabase functions serve --env-file supabase/.env   # from the repo root
+cp web/.env.example web/.env.local   # paste the API URL and anon key `supabase start` printed
+```
+
+Then two terminals, both from the repository root:
+
+```bash
+pnpm functions:serve           # edge functions on :54321/functions/v1
 pnpm dev                       # web on :5173
 ```
 
-Run `supabase functions serve` from the repository root: the functions import
-the engine through `supabase/functions/deno.json`, which points at
-`packages/engine/src`, so the engine sources have to be inside the served
-project directory. That import map is what keeps one copy of the balance
-numbers.
+`pnpm functions:serve` syncs the engine into `supabase/functions/_shared/engine`
+first (gitignored, regenerated every time, never edited) so the edge runtime can
+load it wherever it mounts the project. `packages/engine/src` remains the only
+source; `pnpm functions:deploy` does the same before deploying.
+
+To play a battle you need two fighters, so sign up twice — a second browser
+profile or a private window is enough. Challenge from the Arena, accept from
+Current Battles, then both sides commit a round; the second submission
+resolves it and the log appears.
 
 The sweep is a scheduled call, not a background worker. Point cron, a GitHub
 Action or `supabase functions schedule` at it hourly:
@@ -42,6 +51,9 @@ Action or `supabase functions schedule` at it hourly:
 curl -X POST "$SUPABASE_URL/functions/v1/sweep-deadlines" \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
 ```
+
+Nothing else needs it: a round resolves the moment the second player commits.
+The sweep only exists for the player who never comes back.
 
 ## Checks
 

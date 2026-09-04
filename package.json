@@ -12,7 +12,10 @@
     "lint": "eslint .",
     "supabase": "supabase",
     "gen:types": "supabase gen types typescript --local > web/src/lib/database.types.ts",
-    "test:db": "./scripts/db-check.sh"
+    "test:db": "./scripts/db-check.sh",
+    "sync:engine": "./scripts/sync-engine.sh",
+    "functions:serve": "pnpm sync:engine && supabase functions serve",
+    "functions:deploy": "pnpm sync:engine && supabase functions deploy"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -22,5 +25,11 @@
     "supabase": "^2.22.6",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.69.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "supabase"
+    ]
   }
 }
