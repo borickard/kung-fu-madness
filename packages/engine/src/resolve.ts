@@ -8,12 +8,10 @@ import {
   ENERGY_REGEN,
   HIT_CHANCE_MAX,
   HIT_CHANCE_MIN,
-  MITIGATION_NONE,
   MOVES_BY_ID,
   ROUND_CAP,
   STRENGTH_DAMAGE_PER_POINT,
   TOUGHNESS_REDUCTION_PER_POINT,
-  mitigationFor,
 } from './balance.ts';
 import {
   isZone,
@@ -30,11 +28,13 @@ import {
   type Zone,
 } from './types.ts';
 
-interface QueuedAttack {
+interface Swing {
   side: Side;
   move: Move;
   zone: Zone;
-  /** RNG tie-break key: decides the order of equal-speed attacks. */
+  /** Which of the three exchanges this belongs to. One-based in the log. */
+  exchange: number;
+  /** RNG tie-break key: decides who lands first at equal speed. */
   tie: number;
 }
 
@@ -44,12 +44,6 @@ function copyFighter(f: FighterState): FighterState {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
-}
-
-function countGuards(blocks: readonly Zone[], zone: Zone): number {
-  let guards = 0;
-  for (const block of blocks) if (block === zone) guards += 1;
-  return guards;
 }
 
 function hpPercent(f: FighterState): number {
@@ -89,27 +83,33 @@ export function resolveRound(input: {
     f.energy = Math.min(f.energy_max, f.energy + ENERGY_REGEN);
   }
 
-  // 2. One queue of all six attacks, fastest first, ties broken by the RNG.
-  const queue: QueuedAttack[] = [];
+  // 2. Three exchanges, in order. Within one exchange both fighters swing at
+  //    the same time, so speed decides who lands first and the RNG breaks a
+  //    tie. Across exchanges the order is fixed: first pair, second, third.
+  const swings: Swing[] = [];
   for (const side of ['a', 'b'] as const) {
-    for (const attack of submissions[side].attacks) {
-      queue.push({
+    submissions[side].attacks.forEach((attack, index) => {
+      swings.push({
         side,
         move: moveFor(attack.move_id),
         zone: attack.zone,
+        exchange: index,
         tie: rng.float(),
       });
-    }
+    });
   }
-  queue.sort((x, y) => y.move.spd - x.move.spd || x.tie - y.tie);
+  swings.sort(
+    (x, y) => x.exchange - y.exchange || y.move.spd - x.move.spd || x.tie - y.tie,
+  );
 
-  // 3. Resolve each attack in order.
-  for (const queued of queue) {
-    const attackerSide = queued.side;
+  // 3. Resolve each swing in order.
+  for (const swing of swings) {
+    const attackerSide = swing.side;
     const defenderSide = other(attackerSide);
     const attacker = fighters[attackerSide];
     const defender = fighters[defenderSide];
-    const { move, zone } = queued;
+    const { move, zone } = swing;
+    const exchange = swing.exchange + 1;
 
     // Knocked out earlier this round: the rest of their round never happens.
     if (attacker.hp <= 0) continue;
@@ -121,13 +121,24 @@ export function resolveRound(input: {
         move: move.name,
         move_id: move.id,
         zone,
+        exchange,
       });
       continue;
     }
     attacker.energy -= move.eng;
 
-    const guards = countGuards(submissions[defenderSide].blocks, zone);
-    const mitigation = mitigationFor(guards);
+    // The one block that can stop this: the defender's pick for this exchange.
+    if (submissions[defenderSide].blocks[swing.exchange] === zone) {
+      events.push({
+        kind: 'block',
+        attacker: attackerSide,
+        move: move.name,
+        move_id: move.id,
+        zone,
+        exchange,
+      });
+      continue;
+    }
 
     const hitChance = clamp(
       move.hit_pct + (attacker.accuracy - defender.evasion) * ACCURACY_WEIGHT,
@@ -135,7 +146,14 @@ export function resolveRound(input: {
       HIT_CHANCE_MAX,
     );
     if (rng.int(100) > hitChance) {
-      events.push({ kind: 'miss', attacker: attackerSide, move: move.name, move_id: move.id, zone });
+      events.push({
+        kind: 'miss',
+        attacker: attackerSide,
+        move: move.name,
+        move_id: move.id,
+        zone,
+        exchange,
+      });
       continue;
     }
 
@@ -144,11 +162,10 @@ export function resolveRound(input: {
       (DAMAGE_SPREAD_MIN + rng.float() * DAMAGE_SPREAD_RANGE) *
       (1 + attacker.strength * STRENGTH_DAMAGE_PER_POINT);
 
-    // A blocked zone can never crit, and never rolls for one.
-    const crit = mitigation === MITIGATION_NONE && rng.int(100) <= move.crit_pct;
+    const crit = rng.int(100) <= move.crit_pct;
     if (crit) dealt *= move.crit_mult;
 
-    dealt *= (1 - mitigation) * (1 - defender.toughness * TOUGHNESS_REDUCTION_PER_POINT);
+    dealt *= 1 - defender.toughness * TOUGHNESS_REDUCTION_PER_POINT;
     const amount = Math.round(dealt);
 
     defender.hp -= amount;
@@ -159,9 +176,9 @@ export function resolveRound(input: {
       move: move.name,
       move_id: move.id,
       zone,
+      exchange,
       amount,
       crit,
-      guards,
       hp_after: defender.hp,
     });
   }

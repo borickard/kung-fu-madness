@@ -29,7 +29,7 @@ function kick(
 ) {
   return resolveRound({
     state: state(attacker, defender),
-    a: submission([attack(FLYING_KICK, 'MID_LEFT')]),
+    a: submission([attack(FLYING_KICK, 'MID')]),
     b: NOTHING,
     rng: scriptRng({
       floats: [0.1, ...(rolls.spread === undefined ? [] : [rolls.spread])],

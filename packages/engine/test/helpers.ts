@@ -8,9 +8,8 @@ function byName(name: string): Move {
 }
 
 export const JAB = byName('Jab');
-export const HIGH_PUNCH = byName('High Punch');
-export const LOW_PUNCH = byName('Low Punch');
-export const FRONT_KICK = byName('Front Kick');
+export const PUNCH = byName('Punch');
+export const KICK = byName('Kick');
 export const SWEEP = byName('Sweep');
 export const ELBOW = byName('Elbow');
 export const ROUNDHOUSE = byName('Roundhouse');

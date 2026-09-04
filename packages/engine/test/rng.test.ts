@@ -47,7 +47,7 @@ describe('unknown moves', () => {
     expect(() =>
       resolveRound({
         state: state(),
-        a: submission([{ move_id: 999, zone: 'MID_LEFT' }]),
+        a: submission([{ move_id: 999, zone: 'MID' }]),
         b: NOTHING,
         rng: makeRng(1, 1),
       }),

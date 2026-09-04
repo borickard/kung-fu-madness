@@ -14,13 +14,13 @@ import { Link, useParams } from 'react-router-dom';
 import { BotTag } from '../components/BotTag.tsx';
 import { HpBar } from '../components/HpBar.tsx';
 import { MoveTable } from '../components/MoveTable.tsx';
-import { ZoneGrid, countZones } from '../components/ZoneGrid.tsx';
+import { ZonePicker } from '../components/ZonePicker.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { Empty, Notice, Panel } from '../components/ui/Panel.tsx';
 import { api } from '../lib/api.ts';
 import { loadBattlePage } from '../lib/battles.ts';
 import type { RoundLogRow } from '../lib/database.types.ts';
-import { ZONE_LABEL, belt, outcomeLine, timeLeft } from '../lib/format.ts';
+import { belt, outcomeLine, timeLeft } from '../lib/format.ts';
 import { renderEvent } from '../lib/log.ts';
 import { useSession } from '../lib/session.tsx';
 import { useLive } from '../lib/useLive.ts';
@@ -47,7 +47,6 @@ export function Battle({ onChange }: { onChange: () => void }) {
 
   const [attacks, setAttacks] = useState<Slot[]>(EMPTY_SLOTS);
   const [blocks, setBlocks] = useState<(Zone | null)[]>(Array(BLOCKS_PER_ROUND).fill(null));
-  const [move, setMove] = useState<Move | null>(MOVES[0] ?? null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -66,33 +65,17 @@ export function Battle({ onChange }: { onChange: () => void }) {
   const filledBlocks = blocks.filter(Boolean).length;
   const ready = filledAttacks === ATTACKS_PER_ROUND && filledBlocks === BLOCKS_PER_ROUND;
 
-  function placeAttack(zone: Zone) {
-    if (!move) return;
-    setAttacks((current) => {
-      const next = [...current];
-      const slot = next.findIndex((entry) => !entry.move || !entry.zone);
-      if (slot === -1) return current;
-      next[slot] = { move, zone };
-      return next;
-    });
+  function setMove(index: number, move_id: number) {
+    const chosen = MOVES.find((entry) => entry.id === move_id) ?? null;
+    setAttacks((current) => current.map((slot, i) => (i === index ? { ...slot, move: chosen } : slot)));
   }
 
-  function clearAttack(index: number) {
-    setAttacks((current) => current.map((slot, i) => (i === index ? { move: null, zone: null } : slot)));
+  function setZone(index: number, zone: Zone) {
+    setAttacks((current) => current.map((slot, i) => (i === index ? { ...slot, zone } : slot)));
   }
 
-  function placeBlock(zone: Zone) {
-    setBlocks((current) => {
-      const next = [...current];
-      const slot = next.findIndex((entry) => entry === null);
-      if (slot === -1) return current;
-      next[slot] = zone;
-      return next;
-    });
-  }
-
-  function clearBlock(index: number) {
-    setBlocks((current) => current.map((zone, i) => (i === index ? null : zone)));
+  function setBlock(index: number, zone: Zone) {
+    setBlocks((current) => current.map((entry, i) => (i === index ? zone : entry)));
   }
 
   async function submit() {
@@ -152,62 +135,70 @@ export function Battle({ onChange }: { onChange: () => void }) {
 
       {battle.status === 'active' && !submitted ? (
         <Panel title="Commit your round" aside={`${energySpend}/${energyThisRound} energy`}>
-          <div className="grid gap-4 p-3 lg:grid-cols-2">
-            <div className="space-y-3">
-              <Slots
-                label="Attacks"
-                rows={attacks.map((slot, index) => ({
-                  key: index,
-                  filled: Boolean(slot.move && slot.zone),
-                  text: slot.move && slot.zone ? `${slot.move.name} → ${ZONE_LABEL[slot.zone]}` : 'empty',
-                  onClear: () => clearAttack(index),
-                }))}
-              />
-              <ZoneGrid
-                legend={
-                  move
-                    ? `Pick a target for ${move.name}. Zones describe your opponent.`
-                    : 'Choose a move first.'
-                }
-                counts={countZones(attacks.map((slot) => slot.zone))}
-                onPick={placeAttack}
-                disabled={!move || filledAttacks === ATTACKS_PER_ROUND}
-              />
-            </div>
+          <p className="text-muted border-rule border-b px-3 py-2 text-[12px]">
+            Three exchanges. In each one your attack meets their block for that same
+            exchange, and their attack meets yours. Guess the zone and the whole blow
+            is stopped; guess wrong and all of it lands.
+          </p>
 
-            <div className="space-y-3">
-              <Slots
-                label="Blocks"
-                rows={blocks.map((zone, index) => ({
-                  key: index,
-                  filled: Boolean(zone),
-                  text: zone ? ZONE_LABEL[zone] : 'empty',
-                  onClear: () => clearBlock(index),
-                }))}
-              />
-              <ZoneGrid
-                legend="Guard three zones. Two on one zone mitigates more; three, a little more."
-                counts={countZones(blocks)}
-                onPick={placeBlock}
-                disabled={filledBlocks === BLOCKS_PER_ROUND}
-              />
-            </div>
+          <div className="border-rule divide-rule divide-y">
+            {attacks.map((slot, index) => (
+              <div key={index} className="grid gap-3 p-3 sm:grid-cols-[auto_1fr_1fr]">
+                <div className="num text-muted pt-2 text-[13px]">{index + 1}</div>
+
+                <div className="space-y-2">
+                  <label className="text-muted block text-[11px] tracking-[0.08em] uppercase">
+                    You attack
+                  </label>
+                  <select
+                    className="border-rule bg-panel w-full border px-2 py-1.5 text-[13px]"
+                    value={slot.move?.id ?? ''}
+                    onChange={(event) => setMove(index, Number(event.target.value))}
+                  >
+                    <option value="">choose a move</option>
+                    {MOVES.filter((move) => ownedMoveIds.includes(move.id)).map((move) => (
+                      <option key={move.id} value={move.id}>
+                        {move.name} · {move.avg_dmg} dmg · spd {move.spd} · {move.eng} eng
+                      </option>
+                    ))}
+                  </select>
+                  <ZonePicker
+                    label={`Attack zone for exchange ${index + 1}`}
+                    value={slot.zone}
+                    onPick={(zone) => setZone(index, zone)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-muted block text-[11px] tracking-[0.08em] uppercase">
+                    You block
+                  </label>
+                  <p className="text-muted text-[12px]">
+                    Stops their attack {index + 1}, and nothing else.
+                  </p>
+                  <ZonePicker
+                    label={`Block zone for exchange ${index + 1}`}
+                    tone="block"
+                    value={blocks[index] ?? null}
+                    onPick={(zone) => setBlock(index, zone)}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="border-rule border-t">
-            <MoveTable moves={MOVES} selected={move?.id ?? null} onSelect={setMove} owned={ownedMoveIds} />
+            <MoveTable moves={MOVES} owned={ownedMoveIds} />
           </div>
 
           <div className="border-rule flex flex-wrap items-center justify-between gap-3 border-t p-3">
             <p className="text-muted text-[12px]">
-              Submitting is irreversible. You cannot see your opponent's round, and they cannot see
+              Submitting is irreversible. You cannot see their round, and they cannot see
               yours.
-              {energySpend > energyThisRound
-                ? ' At that energy the last attack will fizzle.'
-                : ''}
+              {energySpend > energyThisRound ? ' At that energy the last attack will fizzle.' : ''}
             </p>
             <Button variant="primary" disabled={!ready || busy} onClick={() => void submit()}>
-              Commit {ATTACKS_PER_ROUND} attacks and {BLOCKS_PER_ROUND} blocks
+              Commit the round
             </Button>
           </div>
           {error ? (
@@ -236,43 +227,6 @@ export function Battle({ onChange }: { onChange: () => void }) {
           </div>
         )}
       </Panel>
-    </div>
-  );
-}
-
-function Slots({
-  label,
-  rows,
-}: {
-  label: string;
-  rows: { key: number; filled: boolean; text: string; onClear: () => void }[];
-}) {
-  return (
-    <div>
-      <p className="text-muted mb-2 text-[11px] tracking-[0.08em] uppercase">{label}</p>
-      <ol className="border-rule border-t">
-        {rows.map((row, index) => (
-          <li
-            key={row.key}
-            className="border-rule flex items-center justify-between border-b px-3 py-2 text-[13px]"
-          >
-            <span className={row.filled ? '' : 'text-muted'}>
-              <span className="num text-muted mr-2">{index + 1}</span>
-              {row.text}
-            </span>
-            {row.filled ? (
-              <button
-                type="button"
-                onClick={row.onClear}
-                className="text-muted hover:text-accent text-[12px]"
-                aria-label={`Clear ${label.toLowerCase()} ${index + 1}`}
-              >
-                clear
-              </button>
-            ) : null}
-          </li>
-        ))}
-      </ol>
     </div>
   );
 }

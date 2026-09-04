@@ -37,7 +37,7 @@ describe('outcomes', () => {
   });
 
   it('drops the rest of the round for the fighter who goes down first', () => {
-    const both = submission([attack(JAB, 'MID_LEFT')]);
+    const both = submission([attack(JAB, 'MID')]);
     const result = resolveRound({
       state: state({ hp: 1 }, { hp: 1 }),
       a: both,
@@ -54,7 +54,7 @@ describe('outcomes', () => {
   it('is a knockout to the fighter left standing', () => {
     const result = resolveRound({
       state: state({}, { hp: 5 }),
-      a: submission([attack(FLYING_KICK, 'MID_LEFT')]),
+      a: submission([attack(FLYING_KICK, 'MID')]),
       b: NOTHING,
       rng: scriptRng({ floats: [0.1, FLAT_SPREAD], ints: [ROLL_MIN, ROLL_MAX] }),
     });

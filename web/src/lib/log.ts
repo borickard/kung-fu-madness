@@ -1,5 +1,5 @@
 import type { LogEvent } from 'engine';
-import { ZONE_LABEL } from './format.ts';
+import { zoneLabel } from './format.ts';
 
 export interface Names {
   a: string;
@@ -26,15 +26,15 @@ export function renderEvent(event: LogEvent, names: Names): string {
 
   const attacker = names[event.attacker];
   const defender = names[event.attacker === 'a' ? 'b' : 'a'];
-  const zone = ZONE_LABEL[event.zone].toLowerCase();
+  const zone = zoneLabel(event.zone).toLowerCase();
 
   switch (event.kind) {
     case 'hit': {
       const crit = event.crit ? ', a clean one' : '';
-      const blocked =
-        event.guards === 0 ? '' : event.guards === 1 ? ', partly blocked' : ', well blocked';
-      return `${defender} was ${movePast(event.move)} to the ${zone} for ${event.amount} points of damage${crit}${blocked}.`;
+      return `${defender} was ${movePast(event.move)} to the ${zone} for ${event.amount} points of damage${crit}.`;
     }
+    case 'block':
+      return `${defender} read the ${event.move} and blocked ${zone}.`;
     case 'miss':
       return `${attacker} threw a ${event.move} at the ${zone} and hit the air.`;
     case 'fizzle':
@@ -46,9 +46,8 @@ export function renderEvent(event: LogEvent, names: Names): string {
 
 export const PAST_TENSE: Record<string, string> = {
   Jab: 'Jabbed',
-  'High Punch': 'High Punched',
-  'Low Punch': 'Low Punched',
-  'Front Kick': 'Front Kicked',
+  Punch: 'Punched',
+  Kick: 'Kicked',
   Sweep: 'Swept',
   Elbow: 'Elbowed',
   Roundhouse: 'Roundhoused',

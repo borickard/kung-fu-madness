@@ -5,8 +5,8 @@ import type { Submission } from '../src/types.ts';
 import { FLYING_KICK, JAB, attack, submission } from './helpers.ts';
 
 const LEGAL: Submission = submission(
-  [attack(JAB, 'HIGH_LEFT'), attack(JAB, 'HIGH_LEFT'), attack(JAB, 'LOW_RIGHT')],
-  ['MID_LEFT', 'MID_LEFT', 'MID_LEFT'],
+  [attack(JAB, 'HIGH'), attack(JAB, 'HIGH'), attack(JAB, 'LOW')],
+  ['MID', 'MID', 'MID'],
 );
 
 describe('validateSubmission', () => {
@@ -20,14 +20,14 @@ describe('validateSubmission', () => {
   });
 
   it('rejects a zone that is not one of the six', () => {
-    const bent = { ...LEGAL, blocks: ['MID_LEFT', 'ELSEWHERE', 'MID_LEFT'] } as unknown as Submission;
+    const bent = { ...LEGAL, blocks: ['MID', 'ELSEWHERE', 'MID'] } as unknown as Submission;
     expect(validateSubmission(bent)).toEqual(['invalid block zone ELSEWHERE']);
   });
 
   it('rejects a move the fighter does not own', () => {
     const unowned = submission(
-      [attack(FLYING_KICK, 'MID_LEFT'), attack(JAB, 'MID_LEFT'), attack(JAB, 'MID_LEFT')],
-      ['MID_LEFT', 'MID_LEFT', 'MID_LEFT'],
+      [attack(FLYING_KICK, 'MID'), attack(JAB, 'MID'), attack(JAB, 'MID')],
+      ['MID', 'MID', 'MID'],
     );
     expect(validateSubmission(unowned, STARTING_MOVE_IDS)).toEqual(['move 8 is not owned']);
     expect(validateSubmission(unowned)).toEqual([]);

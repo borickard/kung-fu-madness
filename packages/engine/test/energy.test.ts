@@ -19,7 +19,7 @@ describe('energy', () => {
   it('deducts on a hit', () => {
     const result = resolveRound({
       state: state({ energy: 20 }, {}),
-      a: submission([attack(FLYING_KICK, 'MID_LEFT')]),
+      a: submission([attack(FLYING_KICK, 'MID')]),
       b: NOTHING,
       rng: scriptRng({ floats: [0.1, FLAT_SPREAD], ints: [ROLL_MIN, ROLL_MAX] }),
     });
@@ -30,7 +30,7 @@ describe('energy', () => {
   it('deducts on a miss', () => {
     const result = resolveRound({
       state: state({ energy: 20 }, {}),
-      a: submission([attack(FLYING_KICK, 'MID_LEFT')]),
+      a: submission([attack(FLYING_KICK, 'MID')]),
       b: NOTHING,
       rng: scriptRng({ floats: [0.1], ints: [ROLL_MAX] }),
     });
@@ -41,18 +41,18 @@ describe('energy', () => {
   it('deducts against a block just the same', () => {
     const result = resolveRound({
       state: state({ energy: 20 }, {}),
-      a: submission([attack(FLYING_KICK, 'MID_LEFT')]),
-      b: submission([], ['MID_LEFT', 'MID_LEFT', 'MID_LEFT']),
-      rng: scriptRng({ floats: [0.1, FLAT_SPREAD], ints: [ROLL_MIN] }),
+      a: submission([attack(FLYING_KICK, 'MID')]),
+      b: submission([], ['MID', 'MID', 'MID']),
+      rng: scriptRng({ floats: [0.1], ints: [] }),
     });
-    expect(result.events[0]).toMatchObject({ kind: 'hit', guards: 3 });
+    expect(result.events[0]).toMatchObject({ kind: 'block', zone: 'MID' });
     expect(result.state.a.energy).toBe(20 + ENERGY_REGEN - KICK_COST);
   });
 
   it('fizzles without enough energy, and deducts nothing', () => {
     const result = resolveRound({
       state: state({ energy: 5 }, {}),
-      a: submission([attack(FLYING_KICK, 'MID_LEFT')]),
+      a: submission([attack(FLYING_KICK, 'MID')]),
       b: NOTHING,
       // One tie key, and no rolls at all: a fizzle never reaches the dice.
       rng: scriptRng({ floats: [0.1], ints: [] }),

@@ -1,20 +1,7 @@
 /** Every target zone describes the *opponent's* body. */
-export type Zone =
-  | 'HIGH_LEFT'
-  | 'HIGH_RIGHT'
-  | 'MID_LEFT'
-  | 'MID_RIGHT'
-  | 'LOW_LEFT'
-  | 'LOW_RIGHT';
+export type Zone = 'HIGH' | 'MID' | 'LOW';
 
-export const ZONES: readonly Zone[] = [
-  'HIGH_LEFT',
-  'HIGH_RIGHT',
-  'MID_LEFT',
-  'MID_RIGHT',
-  'LOW_LEFT',
-  'LOW_RIGHT',
-] as const;
+export const ZONES: readonly Zone[] = ['HIGH', 'MID', 'LOW'] as const;
 
 export function isZone(value: unknown): value is Zone {
   return typeof value === 'string' && (ZONES as readonly string[]).includes(value);
@@ -65,6 +52,10 @@ export interface Attack {
   zone: Zone;
 }
 
+/**
+ * Three attacks and three blocks, and the index matters: your attack 1 meets
+ * their block 1, your attack 2 their block 2. Each pair is one exchange.
+ */
 export interface Submission {
   attacks: Attack[];
   blocks: Zone[];
@@ -77,13 +68,14 @@ export type LogEvent =
       move: string;
       move_id: number;
       zone: Zone;
+      exchange: number;
       amount: number;
       crit: boolean;
-      guards: number;
       hp_after: number;
     }
-  | { kind: 'miss'; attacker: Side; move: string; move_id: number; zone: Zone }
-  | { kind: 'fizzle'; attacker: Side; move: string; move_id: number; zone: Zone }
+  | { kind: 'block'; attacker: Side; move: string; move_id: number; zone: Zone; exchange: number }
+  | { kind: 'miss'; attacker: Side; move: string; move_id: number; zone: Zone; exchange: number }
+  | { kind: 'fizzle'; attacker: Side; move: string; move_id: number; zone: Zone; exchange: number }
   | { kind: 'end'; outcome: Outcome; winner?: Side };
 
 export type Outcome = 'continue' | 'knockout' | 'draw' | 'decision';

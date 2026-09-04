@@ -84,12 +84,12 @@ describe('the bot', () => {
   });
 
   it('guards where it has been hit before', () => {
-    const seen: Zone[] = Array.from({ length: 9 }, () => 'LOW_RIGHT' as Zone);
+    const seen: Zone[] = Array.from({ length: 9 }, () => 'LOW' as Zone);
     let guarded = 0;
     let blind = 0;
     for (let seed = 1; seed <= 60; seed += 1) {
-      guarded += round(seed, 1, { seen }).blocks.filter((zone) => zone === 'LOW_RIGHT').length;
-      blind += round(seed, 1).blocks.filter((zone) => zone === 'LOW_RIGHT').length;
+      guarded += round(seed, 1, { seen }).blocks.filter((zone) => zone === 'LOW').length;
+      blind += round(seed, 1).blocks.filter((zone) => zone === 'LOW').length;
     }
     // Reading the pattern should beat guessing one zone in six by a distance.
     expect(guarded).toBeGreaterThan(blind * 2);
@@ -99,15 +99,15 @@ describe('the bot', () => {
     const rounds = [
       {
         events: [
-          { kind: 'hit', attacker: 'a', zone: 'HIGH_LEFT' as Zone },
-          { kind: 'miss', attacker: 'b', zone: 'LOW_LEFT' as Zone },
-          { kind: 'fizzle', attacker: 'a', zone: 'MID_RIGHT' as Zone },
+          { kind: 'hit', attacker: 'a', zone: 'HIGH' as Zone },
+          { kind: 'miss', attacker: 'b', zone: 'LOW' as Zone },
+          { kind: 'fizzle', attacker: 'a', zone: 'MID' as Zone },
           { kind: 'end' },
         ],
       },
     ];
-    expect(zonesAttackedBy('a', rounds)).toEqual(['HIGH_LEFT', 'MID_RIGHT']);
-    expect(zonesAttackedBy('b', rounds)).toEqual(['LOW_LEFT']);
+    expect(zonesAttackedBy('a', rounds)).toEqual(['HIGH', 'MID']);
+    expect(zonesAttackedBy('b', rounds)).toEqual(['LOW']);
   });
 
   it('refuses to fight with no moves at all', () => {

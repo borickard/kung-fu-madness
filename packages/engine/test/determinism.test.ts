@@ -8,12 +8,12 @@ import { FLYING_KICK, JAB, ROUNDHOUSE, attack, state, submission } from './helpe
 const SEED = 20031121n;
 
 const A = submission(
-  [attack(JAB, 'HIGH_LEFT'), attack(ROUNDHOUSE, 'MID_RIGHT'), attack(FLYING_KICK, 'LOW_LEFT')],
-  ['MID_LEFT', 'MID_LEFT', 'HIGH_RIGHT'],
+  [attack(JAB, 'HIGH'), attack(ROUNDHOUSE, 'MID'), attack(FLYING_KICK, 'LOW')],
+  ['MID', 'MID', 'HIGH'],
 );
 const B = submission(
-  [attack(JAB, 'MID_LEFT'), attack(JAB, 'MID_LEFT'), attack(ROUNDHOUSE, 'HIGH_RIGHT')],
-  ['HIGH_LEFT', 'MID_RIGHT', 'LOW_LEFT'],
+  [attack(JAB, 'MID'), attack(JAB, 'LOW'), attack(ROUNDHOUSE, 'HIGH')],
+  ['HIGH', 'LOW', 'LOW'],
 );
 
 const run = (seed: bigint | number, round_no: number) =>

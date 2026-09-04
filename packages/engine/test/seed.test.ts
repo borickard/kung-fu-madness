@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { MOVES } from '../src/balance.ts';
 
@@ -6,8 +6,12 @@ import { MOVES } from '../src/balance.ts';
  * The `moves` table is the one place a balance value is copied out of the
  * engine. This test is what keeps the copy honest.
  */
-const CATALOG = new URL('../../../supabase/migrations/0005_move_catalog.sql', import.meta.url)
-  .pathname;
+/** The newest catalog migration is the live one; earlier ones are history. */
+const MIGRATIONS = new URL('../../../supabase/migrations', import.meta.url).pathname;
+const CATALOG = `${MIGRATIONS}/${readdirSync(MIGRATIONS)
+  .filter((name) => name.endsWith('_move_catalog.sql'))
+  .sort()
+  .at(-1)}`;
 
 describe('the moves migration', () => {
   const sql = readFileSync(CATALOG, 'utf8');

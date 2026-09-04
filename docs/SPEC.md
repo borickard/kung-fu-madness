@@ -18,32 +18,48 @@ Asynchronous, turn-based PvP. No real-time combat, no canvas, no animation. A ba
 6. Repeat to knockout, decision or walkover.
 7. Both players gain XP, the loser too. Spend XP on attributes and moves. Belts follow cumulative XP.
 
-## 3. Zones
+## 3. Zones and exchanges
 
-Six target zones, always describing the **opponent's** body:
+Three target zones, always describing the **opponent's** body:
 
 ```ts
-type Zone = 'HIGH_LEFT' | 'HIGH_RIGHT' | 'MID_LEFT' | 'MID_RIGHT' | 'LOW_LEFT' | 'LOW_RIGHT';
+type Zone = 'HIGH' | 'MID' | 'LOW';
 ```
 
-Per round a fighter picks exactly three attacks, each with a move and a zone, and exactly three block zones. Repeats are allowed on both sides. Blocking the same zone twice increases mitigation, three times increases it slightly more.
+Per round a fighter picks exactly three attacks, each with a move and a zone,
+and exactly three block zones. **The index is the mechanic.** Attack 1 is
+opposed by the other fighter's block 1, attack 2 by block 2, attack 3 by
+block 3. Each pair is one *exchange*, and a round is three of them.
+
+So in any exchange you have one guess in three of guarding what is coming, and
+they have one guess in three of guarding what you send. A block that reads the
+zone stops the whole blow; a block that reads it wrong does nothing at all.
+Guarding HIGH in exchange 2 is no help against a high attack in exchange 1.
+
+There is no mitigation table. A blow is stopped or it lands.
 
 ## 4. Move catalog
 
-Column names are the original game's own, taken from its attack filter screen. Values *(chosen)*.
+Column names are the original game's own, taken from its attack filter screen.
+Values *(chosen)*.
 
-| name | hit_pct | spd | avg_dmg | range | crit_pct | crit_mult | eng | xp_cost |
-|---|---|---|---|---|---|---|---|---|
-| Jab | 92 | 9 | 7 | 1 | 4 | 1.5 | 2 | 0 |
-| High Punch | 80 | 7 | 13 | 1 | 8 | 1.8 | 4 | 0 |
-| Low Punch | 84 | 7 | 11 | 1 | 6 | 1.8 | 3 | 0 |
-| Front Kick | 72 | 5 | 19 | 2 | 10 | 2.0 | 6 | 120 |
-| Sweep | 68 | 6 | 15 | 1 | 9 | 2.0 | 5 | 180 |
-| Elbow | 88 | 8 | 12 | 0 | 7 | 1.7 | 4 | 240 |
-| Roundhouse | 62 | 4 | 26 | 2 | 14 | 2.2 | 8 | 400 |
-| Flying Kick | 48 | 3 | 38 | 3 | 20 | 2.5 | 12 | 800 |
+| id | name | hit_pct | spd | avg_dmg | range | crit_pct | crit_mult | eng | xp_cost |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Jab | 92 | 9 | 7 | 1 | 4 | 1.5 | 2 | 0 |
+| 2 | Punch | 84 | 7 | 12 | 1 | 7 | 1.8 | 3 | 0 |
+| 3 | Kick | 72 | 5 | 19 | 2 | 10 | 2.0 | 6 | 0 |
+| 5 | Sweep | 68 | 6 | 15 | 1 | 9 | 2.0 | 5 | 180 |
+| 6 | Elbow | 88 | 8 | 12 | 0 | 7 | 1.7 | 4 | 240 |
+| 7 | Roundhouse | 62 | 4 | 26 | 2 | 14 | 2.2 | 8 | 400 |
+| 8 | Flying Kick | 48 | 3 | 38 | 3 | 20 | 2.5 | 12 | 800 |
 
-A new fighter owns the three zero-cost moves. `range` is stored but unused in v1; distance mechanics are out of scope.
+A new fighter owns the three zero-cost moves — Jab, Punch and Kick — which are
+a straight trade of speed for weight. The zone is chosen per attack, every
+round, so it is not part of a move's name: there is no "High Punch", there is a
+Punch thrown high. Id 4 was Front Kick and is retired; the free Kick carries
+its numbers. Ids are never reused.
+
+`range` is stored but unused in v1; distance mechanics are out of scope.
 
 ## 5. Resolution
 
@@ -65,17 +81,20 @@ resolveRound(input: {
 Steps, in order:
 
 1. Both fighters regain `ENERGY_REGEN = 5` energy, capped at `energy_max`.
-2. All six attacks go into one queue sorted by `move.spd` descending. Ties are broken by the injected RNG, not by insertion order.
-3. For each queued attack:
+2. The six attacks are ordered by exchange first — every exchange 1 attack, then
+   every exchange 2, then every exchange 3. Within one exchange both fighters
+   swing at once, so `move.spd` descending decides who lands first, and ties are
+   broken by the injected RNG, not by insertion order.
+3. For each swing in that order:
    - attacker HP at or below 0 → skip, they were knocked out earlier in this round
    - `attacker.energy < move.eng` → emit `fizzle`, skip
    - deduct `move.eng`
-   - `guards` = count of the defender's three block picks equal to this zone
-   - `mitigation` = `guards === 0 ? 0 : guards === 1 ? 0.80 : 0.92`
+   - the defender's block **for this same exchange** equals this zone → emit
+     `block`, skip. No damage, no dice, no crit.
    - `hit_chance = clamp(move.hit_pct + (attacker.accuracy - defender.evasion) * 1.5, 15, 97)`; `rng.int(100) > hit_chance` → emit `miss`, skip
    - `damage = move.avg_dmg * (0.75 + rng.float() * 0.5) * (1 + attacker.strength * 0.04)`
-   - `crit = mitigation === 0 && rng.int(100) <= move.crit_pct`; if so `damage *= move.crit_mult`
-   - `damage *= (1 - mitigation) * (1 - defender.toughness * 0.03)`
+   - `crit = rng.int(100) <= move.crit_pct`; if so `damage *= move.crit_mult`
+   - `damage *= (1 - defender.toughness * 0.03)`
    - `damage = Math.round(damage)`, subtract from defender HP, emit `hit`
 4. Outcome:
    - both at or below 0 HP → `draw`
@@ -83,9 +102,11 @@ Steps, in order:
    - `round_no >= ROUND_CAP (12)` → `decision`, higher remaining HP percentage wins; within `DECISION_MARGIN = 2` percentage points it is a `draw`
    - otherwise `continue`
 
-Crit is impossible against a blocked zone. That is deliberate: it makes a correct block read feel decisive.
+Energy is spent on a swing that is blocked exactly as on one that lands. A
+correct read costs the attacker the move and gives them nothing.
 
-`rng.int(n)` returns a uniform integer in `[1, n]` inclusive, so `hit_pct` and `crit_pct` read as exact percentages.
+`rng.int(n)` returns a uniform integer in `[1, n]` inclusive, so `hit_pct` and
+`crit_pct` read as exact percentages.
 
 ## 6. Progression
 
@@ -102,7 +123,7 @@ Starting fighter: `hp_max 100`, `energy_max 20`, `strength 1`, `accuracy 1`, `ev
 ## 7. Asynchronous handling
 
 - **Deadline:** 24 hours per submission, stored as `battles.deadline_at`, reset on each resolution.
-- **Timeout:** a scheduled sweep inserts a default submission for the missing player — no attacks, blocks on `MID_LEFT`, `MID_RIGHT`, `HIGH_RIGHT` — and resolves the round. `timeouts_a` / `timeouts_b` increments; three consecutive timeouts is a walkover to the opponent.
+- **Timeout:** a scheduled sweep inserts a default submission for the missing player — no attacks, blocks on `MID`, `MID`, `HIGH` — and resolves the round. `timeouts_a` / `timeouts_b` increments; three consecutive timeouts is a walkover to the opponent.
 - One active battle per pair of fighters at a time.
 - Current Battles groups rows: awaiting you, awaiting opponent, finished. Nav shows the count awaiting you.
 
@@ -154,34 +175,35 @@ Resolution path: client posts to the `submit-round` edge function, which inserts
 | Create fighter | Name, starting attributes read-only, one button |
 | Current Battles | The three groups, HP bars, round number, time left. Landing page |
 | Arena | Listed fighters with belt and record, Challenge button, belt filter, List-me toggle |
-| Combat entry | Six-zone grid for attacks, six-zone grid for blocks, move picker showing the full stat row. Submit is irreversible and says so |
+| Combat entry | Three exchanges in a row, each with a move, an attack zone and the block that opposes their attack in that same exchange. The full stat table sits below. Submit is irreversible and says so |
 | Round log | One line per event, HP after each round, whole battle scrollable from round 1 |
 | Fighter sheet | Attributes, owned moves, belt, record, XP balance |
 | Power up | Buy attribute levels and moves, next cost shown |
 | Rankings | Top fighters by belt then XP |
 
-Combat entry is the heart of the game: one screen, no dialogs, obvious which of the three attack slots and three block slots are filled.
+Combat entry is the heart of the game: one screen, no dialogs, and the pairing has to be obvious — it must read as three exchanges, not as six loose choices.
 
 ## 10. Engine test list
 
 Minimum bar for `pnpm --filter engine test`. Each uses a fixed seed.
 
 **Resolution order**
-- attacks resolve in descending `spd`
+- exchanges resolve in order: every exchange 1 swing before any exchange 2 swing
+- inside one exchange the faster move lands first
 - equal `spd` order is decided by the RNG, and identical seeds produce identical order
 - a fighter knocked out by an earlier attack in the same round does not land their remaining attacks
 
 **Blocking**
-- `guards = 0` applies no mitigation
-- `guards = 1` applies exactly 0.80
-- `guards = 2` and `3` apply exactly 0.92
-- a blocked zone can never produce a crit, tested with `crit_pct = 100`
+- an attack is stopped by the block in the same exchange
+- the same zone guarded in a *different* exchange does not stop it
+- a blocked attack deals no damage, rolls no dice and can never crit
+- the three exchanges block independently
 
 **Hit and damage**
 - `hit_chance` is clamped to [15, 97] at extreme accuracy and evasion spreads
 - damage scales with attacker strength and shrinks with defender toughness
 - damage is rounded exactly once
-- `crit_mult` multiplies before mitigation and toughness are applied
+- `crit_mult` multiplies before toughness is applied
 
 **Energy**
 - energy is deducted on a hit, a miss and a block alike
@@ -229,7 +251,14 @@ Not a modern SaaS dashboard. No gradient hero, no glassmorphism, no rounded purp
 
 From the archive: the round loop, the attack stat columns (`H%`, `Spd`, `Avg`, `Range`, `C%`, `Cx`, `Eng`), belt progression through black belt into dan grades, dojos of up to ten players, XP without a loss penalty, draws paying nothing, the per-round countdown, and the log format `<name> was <move> for <n> points of damage`.
 
-Chosen by us: every numeric value, the six-zone grid, mitigation figures, the round cap, decision rules, XP formulas and belt thresholds.
+From a player's memory of the original: three zones, not six, and attacks paired
+with blocks by index rather than thrown against the defender's whole guard. The
+first version of this spec had a six-zone grid and a mitigation table, which put
+one guess in six on a block and made the game a damage race. Three paired
+exchanges is both what the original did and the better game.
+
+Chosen by us: every numeric value, the round cap, decision rules, XP formulas
+and belt thresholds.
 
 Not from the archive: the original's second version used one attack plus one stance per round. The three-and-three model specified here is the first version's, and is the one worth rebuilding.
 

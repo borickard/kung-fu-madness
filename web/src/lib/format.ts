@@ -1,20 +1,15 @@
 import { BELTS, beltName, type Zone } from 'engine';
 
 export const ZONE_LABEL: Record<Zone, string> = {
-  HIGH_LEFT: 'High left',
-  HIGH_RIGHT: 'High right',
-  MID_LEFT: 'Mid left',
-  MID_RIGHT: 'Mid right',
-  LOW_LEFT: 'Low left',
-  LOW_RIGHT: 'Low right',
+  HIGH: 'High',
+  MID: 'Mid',
+  LOW: 'Low',
 };
 
-/** Rows of the six-zone grid, as the opponent's body reads on screen. */
-export const ZONE_GRID: Zone[][] = [
-  ['HIGH_LEFT', 'HIGH_RIGHT'],
-  ['MID_LEFT', 'MID_RIGHT'],
-  ['LOW_LEFT', 'LOW_RIGHT'],
-];
+/** Tolerates a zone from an older round log without taking the page down. */
+export function zoneLabel(zone: string): string {
+  return ZONE_LABEL[zone as Zone] ?? zone.toLowerCase().replace('_', ' ');
+}
 
 export const BELT_NAMES: string[] = BELTS.map((belt) => belt.name);
 

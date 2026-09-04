@@ -15,17 +15,10 @@ export const ROUND_CAP = 12;
 export const ENERGY_REGEN = 5;
 
 // --- Blocking --------------------------------------------------------------
-
-/** Mitigation by number of block picks matching the attacked zone. */
-export const MITIGATION_NONE = 0;
-export const MITIGATION_SINGLE = 0.8;
-export const MITIGATION_DOUBLE = 0.92;
-
-export function mitigationFor(guards: number): number {
-  if (guards <= 0) return MITIGATION_NONE;
-  if (guards === 1) return MITIGATION_SINGLE;
-  return MITIGATION_DOUBLE;
-}
+//
+// There is no mitigation table any more. An exchange is one attack against one
+// block: guess the zone and the whole blow is stopped, guess wrong and all of
+// it lands. One in three, both ways, three times a round.
 
 // --- Hit chance ------------------------------------------------------------
 
@@ -100,15 +93,17 @@ export const ARENA_BELT_SPREAD = 1;
 export const DEADLINE_HOURS = 24;
 export const TIMEOUT_WALKOVER = 3;
 /** What the sweep submits for a player who missed the deadline. */
-export const DEFAULT_BLOCKS: readonly Zone[] = ['MID_LEFT', 'MID_RIGHT', 'HIGH_RIGHT'];
+export const DEFAULT_BLOCKS: readonly Zone[] = ['MID', 'MID', 'HIGH'];
 
 // --- Moves -----------------------------------------------------------------
 
+// The three basics are a straight speed-for-weight trade, and every one of
+// them can be thrown high, mid or low. The zone is the player's choice, so it
+// is not baked into the name.
 export const MOVES: readonly Move[] = [
   { id: 1, name: 'Jab',         hit_pct: 92, spd: 9, avg_dmg: 7,  range: 1, crit_pct: 4,  crit_mult: 1.5, eng: 2,  xp_cost: 0 },
-  { id: 2, name: 'High Punch',  hit_pct: 80, spd: 7, avg_dmg: 13, range: 1, crit_pct: 8,  crit_mult: 1.8, eng: 4,  xp_cost: 0 },
-  { id: 3, name: 'Low Punch',   hit_pct: 84, spd: 7, avg_dmg: 11, range: 1, crit_pct: 6,  crit_mult: 1.8, eng: 3,  xp_cost: 0 },
-  { id: 4, name: 'Front Kick',  hit_pct: 72, spd: 5, avg_dmg: 19, range: 2, crit_pct: 10, crit_mult: 2.0, eng: 6,  xp_cost: 120 },
+  { id: 2, name: 'Punch',       hit_pct: 84, spd: 7, avg_dmg: 12, range: 1, crit_pct: 7,  crit_mult: 1.8, eng: 3,  xp_cost: 0 },
+  { id: 3, name: 'Kick',        hit_pct: 72, spd: 5, avg_dmg: 19, range: 2, crit_pct: 10, crit_mult: 2.0, eng: 6,  xp_cost: 0 },
   { id: 5, name: 'Sweep',       hit_pct: 68, spd: 6, avg_dmg: 15, range: 1, crit_pct: 9,  crit_mult: 2.0, eng: 5,  xp_cost: 180 },
   { id: 6, name: 'Elbow',       hit_pct: 88, spd: 8, avg_dmg: 12, range: 0, crit_pct: 7,  crit_mult: 1.7, eng: 4,  xp_cost: 240 },
   { id: 7, name: 'Roundhouse',  hit_pct: 62, spd: 4, avg_dmg: 26, range: 2, crit_pct: 14, crit_mult: 2.2, eng: 8,  xp_cost: 400 },

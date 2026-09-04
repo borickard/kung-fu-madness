@@ -9,45 +9,56 @@ describe('combat log', () => {
     const hit: LogEvent = {
       kind: 'hit',
       attacker: 'b',
-      move: 'High Punch',
+      move: 'Punch',
       move_id: 2,
-      zone: 'HIGH_LEFT',
+      zone: 'HIGH',
+      exchange: 1,
       amount: 57,
       crit: false,
-      guards: 0,
       hp_after: 43,
     };
     expect(renderEvent(hit, names)).toBe(
-      'Richard was High Punched to the high left for 57 points of damage.',
+      'Richard was Punched to the high for 57 points of damage.',
     );
   });
 
-  it('mentions a crit and a block without raising its voice', () => {
+  it('notes a clean hit without raising its voice', () => {
     const base = {
       kind: 'hit' as const,
       attacker: 'a' as const,
       move: 'Flying Kick',
       move_id: 8,
-      zone: 'MID_RIGHT' as const,
+      zone: 'MID' as const,
+      exchange: 2,
       amount: 12,
       hp_after: 60,
     };
-    expect(renderEvent({ ...base, crit: true, guards: 0 }, names)).toContain(', a clean one.');
-    expect(renderEvent({ ...base, crit: false, guards: 1 }, names)).toContain(', partly blocked.');
-    expect(renderEvent({ ...base, crit: false, guards: 3 }, names)).toContain(', well blocked.');
+    expect(renderEvent({ ...base, crit: true }, names)).toContain(', a clean one.');
+    expect(renderEvent({ ...base, crit: false }, names)).toBe(
+      'Bao was Flying Kicked to the mid for 12 points of damage.',
+    );
+  });
+
+  it('says who read whom when a block lands', () => {
+    expect(
+      renderEvent(
+        { kind: 'block', attacker: 'a', move: 'Kick', move_id: 3, zone: 'LOW', exchange: 3 },
+        names,
+      ),
+    ).toBe('Bao read the Kick and blocked low.');
   });
 
   it('renders misses, fizzles and the end of a battle', () => {
     expect(
       renderEvent(
-        { kind: 'miss', attacker: 'a', move: 'Sweep', move_id: 5, zone: 'LOW_LEFT' },
+        { kind: 'miss', attacker: 'a', move: 'Sweep', move_id: 5, zone: 'LOW', exchange: 1 },
         names,
       ),
-    ).toBe('Richard threw a Sweep at the low left and hit the air.');
+    ).toBe('Richard threw a Sweep at the low and hit the air.');
 
     expect(
       renderEvent(
-        { kind: 'fizzle', attacker: 'b', move: 'Roundhouse', move_id: 7, zone: 'MID_LEFT' },
+        { kind: 'fizzle', attacker: 'b', move: 'Roundhouse', move_id: 7, zone: 'MID', exchange: 3 },
         names,
       ),
     ).toBe('Bao had nothing left for the Roundhouse.');
@@ -55,15 +66,25 @@ describe('combat log', () => {
     expect(renderEvent({ kind: 'end', outcome: 'knockout', winner: 'b' }, names)).toBe(
       'Bao wins by knockout.',
     );
-    expect(renderEvent({ kind: 'end', outcome: 'draw' }, names)).toBe(
-      'The battle is a draw. Nobody is paid.',
-    );
+  });
+
+  it('survives a zone from an older six-zone log', () => {
+    const stale = {
+      kind: 'miss',
+      attacker: 'a',
+      move: 'Jab',
+      move_id: 1,
+      zone: 'MID_LEFT',
+      exchange: 1,
+    } as unknown as LogEvent;
+    expect(() => renderEvent(stale, names)).not.toThrow();
+    expect(renderEvent(stale, names)).toContain('mid left');
   });
 
   it('knows the past tense of every move in the catalog', () => {
     expect(movePast('Jab')).toBe('Jabbed');
+    expect(movePast('Punch')).toBe('Punched');
+    expect(movePast('Kick')).toBe('Kicked');
     expect(movePast('Sweep')).toBe('Swept');
-    expect(movePast('Roundhouse')).toBe('Roundhoused');
-    expect(movePast('Flying Kick')).toBe('Flying Kicked');
   });
 });

@@ -49,13 +49,13 @@ describe('xp balance', () => {
   it('is cumulative XP minus everything already bought', () => {
     expect(xpBalance(1000, FRESH, STARTING_MOVE_IDS)).toBe(1000);
     expect(xpBalance(1000, { ...FRESH, strength: 3 }, STARTING_MOVE_IDS)).toBe(1000 - 520);
-    // Front Kick costs 120.
-    expect(xpBalance(1000, FRESH, [...STARTING_MOVE_IDS, 4])).toBe(880);
+    // Sweep, the cheapest move that is not free, costs 180.
+    expect(xpBalance(1000, FRESH, [...STARTING_MOVE_IDS, 5])).toBe(820);
   });
 
   it('refuses a move already owned, unknown, or out of reach', () => {
-    expect(buyMove(4, 120, [...STARTING_MOVE_IDS])).toEqual({ ok: true, cost: 120, level: 0 });
-    expect(buyMove(4, 119, [...STARTING_MOVE_IDS])).toMatchObject({ reason: 'insufficient_xp' });
+    expect(buyMove(5, 180, [...STARTING_MOVE_IDS])).toEqual({ ok: true, cost: 180, level: 0 });
+    expect(buyMove(5, 179, [...STARTING_MOVE_IDS])).toMatchObject({ reason: 'insufficient_xp' });
     expect(buyMove(1, 10_000, [...STARTING_MOVE_IDS])).toMatchObject({ reason: 'already_owned' });
     expect(buyMove(99, 10_000, [...STARTING_MOVE_IDS])).toMatchObject({ reason: 'unknown_move' });
   });
