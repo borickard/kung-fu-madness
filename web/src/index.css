@@ -1,0 +1,113 @@
+@import 'tailwindcss';
+
+/*
+  A lean administrative interface that could plausibly have run in 2003.
+  Near-white ground, hairline rules, dense tables, monospace for every number.
+  One accent: a seal red, used sparingly and never for decoration.
+*/
+@theme {
+  --font-slab: 'Roboto Slab', Rockwell, Georgia, serif;
+  --font-sans: 'Inter', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --color-ground: #f6f5f1;
+  --color-panel: #fffefb;
+  --color-ink: #191817;
+  --color-muted: #6d6a62;
+  --color-rule: #ded9cf;
+  --color-accent: #a4241d;
+  --color-accent-soft: #f0e2e0;
+  --color-good: #3f6b45;
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  /* Same restraint, less light. */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-ground: #14140f;
+      --color-panel: #1b1b16;
+      --color-ink: #e9e6dd;
+      --color-muted: #918d82;
+      --color-rule: #302f28;
+      --color-accent: #cf5a4e;
+      --color-accent-soft: #2b1e1c;
+      --color-good: #7fa886;
+    }
+  }
+
+  html {
+    background: var(--color-ground);
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-slab);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th {
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--color-rule);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--color-rule);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='password'] {
+    background: var(--color-panel);
+    border: 1px solid var(--color-rule);
+    padding: 7px 9px;
+    width: 100%;
+    color: inherit;
+    font: inherit;
+  }
+
+  input:focus-visible,
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+  }
+}
