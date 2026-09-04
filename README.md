@@ -145,6 +145,12 @@ that keeps client-side routes working on a hard refresh. If the Vercel project
 has a Root Directory set to `web`, clear it: the build runs from the repository
 root so the workspace can resolve `engine`.
 
+The build writes to `dist/` at the repository root rather than `web/dist`. That
+is deliberate: a host that knows nothing about the workspace layout looks for
+`dist` beside the project it cloned, and an Output Directory override in a
+dashboard beats anything `vercel.json` says. Building where it already looks
+means the deployment does not depend on a setting nobody can see from here.
+
 Deadlines only need sweeping if a human abandons a battle; bots answer
 instantly. To automate it, schedule `sweep-deadlines` from the dashboard under
 Integrations → Cron, or call it yourself:
