@@ -13,6 +13,17 @@ Full game rules, numbers and data model: `docs/SPEC.md`. That file is the source
 
 Postgres runs locally through the Supabase CLI. No ORM: plain SQL and generated types.
 
+## Local checkout
+
+On Rickard's Mac this repo lives at `/Users/rickard/Kod/kung-fu-madness`. Clone
+and pull there, not into the home directory or wherever a terminal happens to
+be sitting.
+
+```bash
+cd /Users/rickard/Kod
+git clone https://github.com/borickard/kung-fu-madness
+```
+
 ## Commands
 
 ```bash
