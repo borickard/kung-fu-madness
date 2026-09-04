@@ -7,7 +7,7 @@ const NAME_PATTERN = /^[\p{L}\p{N} '_-]{2,24}$/u;
 Deno.serve(
   handler(async (req) => {
     const admin = serviceClient();
-    const user = await requireUser(req);
+    const user = await requireUser(req, admin);
     const { name } = await readBody<{ name?: string }>(req);
     const trimmed = (name ?? '').trim();
 
