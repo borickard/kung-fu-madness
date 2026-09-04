@@ -52,8 +52,22 @@ pnpm test                            # engine + web
 pnpm typecheck && pnpm lint
 ```
 
-The security tests from SPEC section 10 need a live local stack, so they are
-skipped unless you ask for them:
+The schema, its policies and the two transactional writes are checked against
+a throwaway Postgres cluster, no Docker required:
+
+```bash
+pnpm test:db                         # migrations, seed, then supabase/tests/*_test.sql
+```
+
+That is where the row level security is proved: it asserts that player B
+cannot read player A's submission through a select, a filter or a join, that a
+client cannot move `battles.hp_a` or its own XP, and that `commit_round` is not
+callable from the client at all. `supabase/tests/shim_auth.sql` stands in for
+the parts of Supabase the migrations lean on and is never applied to a real
+project.
+
+The same ground is covered through the API by an integration test that needs a
+live local stack, so it is skipped unless you ask for it:
 
 ```bash
 KFM_INTEGRATION=1 \

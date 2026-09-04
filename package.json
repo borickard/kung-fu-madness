@@ -11,7 +11,8 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "supabase": "supabase",
-    "gen:types": "supabase gen types typescript --local > web/src/lib/database.types.ts"
+    "gen:types": "supabase gen types typescript --local > web/src/lib/database.types.ts",
+    "test:db": "./scripts/db-check.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

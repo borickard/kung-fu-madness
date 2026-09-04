@@ -53,3 +53,11 @@ These are correctness requirements, not preferences. Breaking any of them is a b
 * Do not add features that `docs/SPEC.md` lists as out of scope. Ask first.
 * Prefer one screen working end to end over several half-built ones.
 * Run `pnpm test && pnpm typecheck` before saying a milestone is done.
+
+## Checking the database without Docker
+
+`pnpm test:db` applies the migrations and the seed to a throwaway Postgres
+cluster and runs `supabase/tests/*_test.sql` against it: the RLS assertions
+from SPEC section 10 and the behaviour of `commit_round` and `finish_battle`.
+It needs Postgres 15+ binaries on the machine and nothing else. Run it after
+touching anything under `supabase/`.

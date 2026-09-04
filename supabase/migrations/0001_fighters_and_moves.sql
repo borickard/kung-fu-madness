@@ -70,7 +70,9 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  if auth.role() = 'service_role' then
+  -- PostgREST runs client requests as anon or authenticated. Anything else is
+  -- the server: the service role, or an edge function's transactional write.
+  if current_user not in ('authenticated', 'anon') then
     return new;
   end if;
 
@@ -122,7 +124,7 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  if auth.role() = 'service_role' then
+  if current_user not in ('authenticated', 'anon') then
     return new;
   end if;
 
