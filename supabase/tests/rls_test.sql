@@ -163,6 +163,49 @@ begin
 end
 $$;
 
+-- Bots belong to nobody ---------------------------------------------------------
+
+reset role;
+
+insert into public.battles
+  (id, fighter_a, fighter_b, status, round_no, seed, hp_a, hp_b, energy_a, energy_b, deadline_at)
+values
+  ('66666666-6666-6666-6666-666666666666', :'fighter_a',
+   '10000000-0000-4000-8000-000000000001', 'active', 1, 99, 100, 100, 20, 20, now() + interval '1 hour');
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', :'user_a', true) \g /dev/null
+
+do $$
+declare touched int;
+        listed int;
+        refused boolean := false;
+begin
+  -- A bot is public to read, like any fighter.
+  select count(*) into listed from public.fighters where is_bot;
+  assert listed = 3, 'the practice bots are not readable';
+
+  -- But nobody owns one, so nobody can change it.
+  with changed as (
+    update public.fighters set is_listed_in_arena = false where is_bot returning 1
+  )
+  select count(*) into touched from changed;
+  assert touched = 0, 'a client changed a bot fighter';
+
+  -- And above all, nobody can play its hand.
+  begin
+    insert into public.submissions (battle_id, round_no, fighter_id, attacks, blocks)
+    values ('66666666-6666-6666-6666-666666666666', 1,
+            '10000000-0000-4000-8000-000000000001', '[]'::jsonb, '[]'::jsonb);
+  exception when others then refused := true;
+  end;
+  assert refused, 'a client submitted a round on a bot''s behalf';
+
+  select count(*) into listed from public.rankings where name = 'Wooden Dummy';
+  assert listed = 0, 'a bot turned up in the rankings';
+end
+$$;
+
 -- Resolution stays on the server ----------------------------------------------
 
 reset role;

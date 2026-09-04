@@ -1,6 +1,7 @@
 import { ARENA_BELT_SPREAD } from 'engine';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { BotTag } from '../components/BotTag.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { Empty, Notice, Panel } from '../components/ui/Panel.tsx';
 import { api } from '../lib/api.ts';
@@ -12,6 +13,7 @@ import { useLive } from '../lib/useLive.ts';
 
 export function Arena({ onChallenge }: { onChallenge: () => void }) {
   const { fighter, refresh } = useSession();
+  const navigate = useNavigate();
   const [wide, setWide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -54,9 +56,11 @@ export function Arena({ onChallenge }: { onChallenge: () => void }) {
     setBusy(opponent.id);
     setError(null);
     try {
-      await api.challenge(opponent.id);
-      setSent((current) => [...current, opponent.id]);
+      const { battle } = await api.challenge(opponent.id);
       onChallenge();
+      // A bot is already on the mat, so go straight to the first round.
+      if (battle.status === 'active') navigate(`/battle/${battle.id}`);
+      else setSent((current) => [...current, opponent.id]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'that did not work');
     } finally {
@@ -113,6 +117,7 @@ export function Arena({ onChallenge }: { onChallenge: () => void }) {
                     >
                       {opponent.name}
                     </Link>
+                    {opponent.is_bot ? <BotTag /> : null}
                   </td>
                   <td className="text-muted text-[13px]">{belt(opponent.belt)}</td>
                   <td className="num text-right">{opponent.xp}</td>
@@ -125,7 +130,7 @@ export function Arena({ onChallenge }: { onChallenge: () => void }) {
                         disabled={busy === opponent.id}
                         onClick={() => void challenge(opponent)}
                       >
-                        Challenge
+                        {opponent.is_bot ? 'Spar' : 'Challenge'}
                       </Button>
                     )}
                   </td>

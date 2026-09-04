@@ -121,3 +121,16 @@ export const MOVES_BY_ID: ReadonlyMap<number, Move> = new Map(MOVES.map((m) => [
 export const STARTING_MOVE_IDS: readonly number[] = MOVES.filter((m) => m.xp_cost === 0).map(
   (m) => m.id,
 );
+
+// --- Bots ------------------------------------------------------------------
+// A bot is a fighter with nobody behind it. These decide how it plays; the
+// engine picks its round, the edge function submits it. All *(chosen)*.
+
+/** Chance an attack takes the best expected-damage move the bot can afford. */
+export const BOT_GREED = 0.6;
+/** Chance an attack reuses a zone the bot has already picked this round. */
+export const BOT_ZONE_REPEAT = 0.25;
+/** Chance a block is drawn from the zones the opponent has been using. */
+export const BOT_BLOCK_READ = 0.5;
+/** How many of the opponent's past rounds the bot weighs when blocking. */
+export const BOT_MEMORY_ROUNDS = 3;

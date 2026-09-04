@@ -1,5 +1,5 @@
 import { validateSubmission, type Attack, type Zone } from 'engine';
-import { loadBattle, resolveIfReady, sideOf } from '../_shared/battle.ts';
+import { ensureBotSubmissions, loadBattle, loadFighters, resolveIfReady, sideOf } from '../_shared/battle.ts';
 import { HttpError, handler, json } from '../_shared/http.ts';
 import { readBody, requireFighter, serviceClient } from '../_shared/supabase.ts';
 
@@ -44,6 +44,9 @@ Deno.serve(
       if (insertError.code === '23505') throw new HttpError(409, 'you have already committed this round');
       throw new HttpError(500, insertError.message);
     }
+
+    // A bot answers straight away, so a practice round resolves on the spot.
+    await ensureBotSubmissions(admin, battle, await loadFighters(admin, battle));
 
     // Both in on time: neither is running a timeout streak any more.
     const resolution = await resolveIfReady(admin, battle, { a: 0, b: 0 }, new Date());

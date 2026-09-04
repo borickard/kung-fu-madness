@@ -11,6 +11,7 @@ import {
 } from 'engine';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { BotTag } from '../components/BotTag.tsx';
 import { HpBar } from '../components/HpBar.tsx';
 import { MoveTable } from '../components/MoveTable.tsx';
 import { ZoneGrid, countZones } from '../components/ZoneGrid.tsx';
@@ -124,7 +125,20 @@ export function Battle({ onChange }: { onChange: () => void }) {
       >
         <div className="grid gap-4 p-3 sm:grid-cols-2">
           <HpBar hp={myHp} hpMax={me.hp_max} name={`${me.name} (you)`} />
-          <HpBar hp={theirHp} hpMax={opponent.hp_max} name={`${opponent.name} · ${belt(opponent.belt)}`} />
+          <div>
+            <HpBar
+              hp={theirHp}
+              hpMax={opponent.hp_max}
+              name={`${opponent.name} · ${belt(opponent.belt)}`}
+            />
+            {opponent.is_bot ? <BotTag /> : null}
+            {opponent.is_bot ? (
+              <p className="text-muted mt-1 text-[12px]">
+                A practice bot. It answers the moment you commit, and it pays no XP after the
+                first win of the day.
+              </p>
+            ) : null}
+          </div>
         </div>
         {battle.status === 'finished' ? (
           <p className="border-rule border-t px-3 py-2 text-[13px]">

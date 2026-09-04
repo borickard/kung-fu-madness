@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { BotTag } from '../components/BotTag.tsx';
 import { HpBar } from '../components/HpBar.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { Empty, Notice, Panel } from '../components/ui/Panel.tsx';
@@ -89,6 +90,7 @@ function BattleList({
                 <Link className="hover:text-accent underline-offset-2 hover:underline" to={`/battle/${battle.id}`}>
                   {opponent.name}
                 </Link>
+                {opponent.is_bot ? <BotTag /> : null}
               </td>
               <td className="text-muted text-[13px]">{belt(opponent.belt)}</td>
               <td>

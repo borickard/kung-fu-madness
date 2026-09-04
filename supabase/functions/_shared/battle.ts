@@ -4,9 +4,12 @@ import {
   REPEAT_OPPONENT_WINDOW_HOURS,
   battleXp,
   beltForXp,
+  botSubmission,
   makeRng,
   resolveRound,
+  zonesAttackedBy,
   type BattleState,
+  type FighterState,
   type LogEvent,
   type Side,
   type Submission,
@@ -66,22 +69,77 @@ export function sideOf(battle: BattleRow, fighter_id: string): Side {
   throw new HttpError(403, 'not your battle');
 }
 
-function stateOf(battle: BattleRow, fighters: { a: FighterRow; b: FighterRow }): BattleState {
-  const build = (f: FighterRow, hp: number, energy: number) => ({
-    hp,
+export function fighterStateOf(battle: BattleRow, side: Side, f: FighterRow): FighterState {
+  return {
+    hp: side === 'a' ? battle.hp_a : battle.hp_b,
     hp_max: f.hp_max,
-    energy,
+    energy: side === 'a' ? battle.energy_a : battle.energy_b,
     energy_max: f.energy_max,
     strength: f.strength,
     accuracy: f.accuracy,
     evasion: f.evasion,
     toughness: f.toughness,
-  });
+  };
+}
+
+function stateOf(battle: BattleRow, fighters: { a: FighterRow; b: FighterRow }): BattleState {
   return {
     round_no: battle.round_no,
-    a: build(fighters.a, battle.hp_a, battle.energy_a),
-    b: build(fighters.b, battle.hp_b, battle.energy_b),
+    a: fighterStateOf(battle, 'a', fighters.a),
+    b: fighterStateOf(battle, 'b', fighters.b),
   };
+}
+
+/**
+ * Play any bot in this battle that has not committed the current round. The
+ * bot's hand is dealt here, with the service role, and never in the browser.
+ */
+export async function ensureBotSubmissions(
+  admin: SupabaseClient,
+  battle: BattleRow,
+  fighters: { a: FighterRow; b: FighterRow },
+): Promise<void> {
+  for (const side of ['a', 'b'] as const) {
+    const bot = fighters[side];
+    if (!bot.is_bot) continue;
+
+    const { data: owned, error: ownedError } = await admin
+      .from('fighter_moves')
+      .select('move_id')
+      .eq('fighter_id', bot.id);
+    if (ownedError) throw new HttpError(500, ownedError.message);
+
+    const { data: logs, error: logError } = await admin
+      .from('round_logs')
+      .select('events')
+      .eq('battle_id', battle.id)
+      .order('round_no', { ascending: true });
+    if (logError) throw new HttpError(500, logError.message);
+
+    const opponent: Side = side === 'a' ? 'b' : 'a';
+    const seen = zonesAttackedBy(
+      opponent,
+      (logs ?? []).map((row) => ({ events: (row.events ?? []) as LogEvent[] })),
+    );
+
+    const submission = botSubmission({
+      seed: battle.seed,
+      round_no: battle.round_no,
+      self: fighterStateOf(battle, side, bot),
+      moveIds: (owned ?? []).map((row) => row.move_id as number),
+      seen,
+    });
+
+    const { error } = await admin.from('submissions').insert({
+      battle_id: battle.id,
+      round_no: battle.round_no,
+      fighter_id: bot.id,
+      attacks: submission.attacks,
+      blocks: submission.blocks,
+    });
+    // 23505 means it already committed this round, which is not a problem.
+    if (error && error.code !== '23505') throw new HttpError(500, error.message);
+  }
 }
 
 /** Damage dealt across every round already on the record. */
@@ -180,9 +238,13 @@ export async function resolveIfReady(
       belt: { a: fighters.a.belt, b: fighters.b.belt },
       priorBattlesInWindow: await priorBattlesInWindow(admin, battle, now),
     });
+    // A bot earns nothing and never moves up: it is a training partner, and
+    // its belt is the whole point of picking it.
+    if (fighters.a.is_bot) xp.a = 0;
+    if (fighters.b.is_bot) xp.b = 0;
     belts = {
-      a: beltForXp(fighters.a.xp + xp.a),
-      b: beltForXp(fighters.b.xp + xp.b),
+      a: fighters.a.is_bot ? null : beltForXp(fighters.a.xp + xp.a),
+      b: fighters.b.is_bot ? null : beltForXp(fighters.b.xp + xp.b),
     };
   }
 

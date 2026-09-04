@@ -232,3 +232,49 @@ From the archive: the round loop, the attack stat columns (`H%`, `Spd`, `Avg`, `
 Chosen by us: every numeric value, the six-zone grid, mitigation figures, the round cap, decision rules, XP formulas and belt thresholds.
 
 Not from the archive: the original's second version used one attack plus one stance per round. The three-and-three model specified here is the first version's, and is the one worth rebuilding.
+
+## 15. Practice bots
+
+Not in the archive. Added so a new fighter has somebody to hit on a quiet
+server, and so the combat entry screen can be learned without waiting a day for
+a reply.
+
+A bot is an ordinary row in `fighters` with `is_bot true` and **`user_id null`**.
+That null is the whole security story: `owns_fighter` compares `user_id` to
+`auth.uid()`, null equals nothing, so no client can own a bot, read its
+submissions, write on its behalf or edit its row. The edge functions play it
+with the service role, exactly as they resolve rounds.
+
+**Behaviour.** `botSubmission` in `packages/engine/src/bot.ts` is pure and
+seeded on `(battle.seed, round_no)`, on a stream offset away from the one
+resolution uses, so a bot's round replays like everything else. Per attack slot
+it budgets the energy it will have after regen and picks among the moves it can
+afford; if it can afford nothing it throws its cheapest move and fizzles, the
+same mistake a person makes. Values *(chosen)*:
+
+| name | value | what it does |
+|---|---|---|
+| `BOT_GREED` | 0.6 | chance the slot takes the best `avg_dmg * hit_pct` move it can afford, rather than any affordable one |
+| `BOT_ZONE_REPEAT` | 0.25 | chance an attack reuses a zone already picked this round |
+| `BOT_BLOCK_READ` | 0.5 | chance a block is drawn from the zones the opponent has been using, rather than at random |
+| `BOT_MEMORY_ROUNDS` | 3 | how many of the opponent's past rounds it weighs when blocking |
+
+**Rules of engagement.**
+
+- A bot accepts instantly: challenging one creates the battle already `active`.
+- A bot answers the moment you commit, so a practice round resolves on the spot.
+  It never times out and never triggers a walkover.
+- A bot earns no XP and never changes belt. Its belt is why you picked it.
+- Bots are excluded from Rankings.
+- Repeat-opponent decay is untouched, so a human's XP from the same bot inside
+  24 hours still runs 1.0, 0.5, 0.25, 0. The dummy cannot be farmed.
+- One live battle per pair still applies: one bout per bot at a time.
+
+**Roster,** seeded in `supabase/seed.sql`, attributes paid for out of their XP
+at the costs in section 6:
+
+| name | belt | XP | attributes | moves |
+|---|---|---|---|---|
+| Wooden Dummy | White | 0 | all 1 | the three free ones |
+| Brick | Yellow | 300 | toughness 2 | the three free ones |
+| The Caretaker | Orange | 900 | strength 2, accuracy 2 | plus Front Kick |

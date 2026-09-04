@@ -1,5 +1,12 @@
 import { DEFAULT_BLOCKS, TIMEOUT_WALKOVER } from 'engine';
-import { finishWalkover, loadBattle, resolveIfReady, type BattleRow } from '../_shared/battle.ts';
+import {
+  ensureBotSubmissions,
+  finishWalkover,
+  loadBattle,
+  loadFighters,
+  resolveIfReady,
+  type BattleRow,
+} from '../_shared/battle.ts';
 import { HttpError, handler, json } from '../_shared/http.ts';
 import { serviceClient } from '../_shared/supabase.ts';
 
@@ -40,6 +47,13 @@ Deno.serve(
         .eq('round_no', battle.round_no);
       if (submittedError) throw new HttpError(500, submittedError.message);
       const present = new Set((submitted ?? []).map((s) => s.fighter_id as string));
+
+      // A bot never misses a deadline; it just had nothing to answer yet.
+      const fighters = await loadFighters(admin, battle);
+      if (fighters.a.is_bot || fighters.b.is_bot) {
+        await ensureBotSubmissions(admin, battle, fighters);
+        present.add(fighters.a.is_bot ? battle.fighter_a : battle.fighter_b);
+      }
 
       const missingA = !present.has(battle.fighter_a);
       const missingB = !present.has(battle.fighter_b);

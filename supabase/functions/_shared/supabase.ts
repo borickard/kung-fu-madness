@@ -16,7 +16,7 @@ export function serviceClient(): SupabaseClient {
 
 export interface FighterRow {
   id: string;
-  user_id: string;
+  user_id: string | null;
   name: string;
   belt: number;
   xp: number;
@@ -30,6 +30,7 @@ export interface FighterRow {
   losses: number;
   draws: number;
   is_listed_in_arena: boolean;
+  is_bot: boolean;
 }
 
 export async function requireUser(req: Request, admin: SupabaseClient): Promise<{ id: string }> {

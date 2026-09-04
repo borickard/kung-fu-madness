@@ -36,18 +36,21 @@ Deno.serve(
       if (opponentError) throw new HttpError(500, opponentError.message);
       if (!opponent) throw new HttpError(404, 'no such fighter');
 
+      // A bot has nobody to consider the offer, so it is already on the mat.
+      const accepted = opponent.is_bot;
       const { data, error } = await admin
         .from('battles')
         .insert({
           fighter_a: me.id,
           fighter_b: opponent.id,
-          status: 'pending',
+          status: accepted ? 'active' : 'pending',
           round_no: 1,
           seed: seed(),
           hp_a: me.hp_max,
           hp_b: opponent.hp_max,
           energy_a: me.energy_max,
           energy_b: opponent.energy_max,
+          deadline_at: accepted ? deadlineFrom(new Date()) : null,
         })
         .select()
         .single();

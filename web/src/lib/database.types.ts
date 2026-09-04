@@ -6,7 +6,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 
 export interface FighterRow {
   id: string;
-  user_id: string;
+  user_id: string | null;
   name: string;
   belt: number;
   xp: number;
@@ -20,6 +20,7 @@ export interface FighterRow {
   losses: number;
   draws: number;
   is_listed_in_arena: boolean;
+  is_bot: boolean;
   created_at: string;
 }
 
