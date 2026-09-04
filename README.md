@@ -145,8 +145,10 @@ that keeps client-side routes working on a hard refresh. If the Vercel project
 has a Root Directory set to `web`, clear it: the build runs from the repository
 root so the workspace can resolve `engine`.
 
-Vite builds to `web/dist` as you would expect, and the build command copies
-that to `dist/` at the repository root. A host that knows nothing about the
+Vite builds to `web/dist` as you would expect, and `pnpm vercel:build` copies
+that to `dist/` at the repository root. The build command goes through
+`pnpm -w run` because the builder runs it with the working directory set to
+`web`, where a plain `rm -rf dist` deletes the output instead of the copy. A host that knows nothing about the
 workspace layout looks for `dist` beside the project it cloned, and an Output
 Directory override in a dashboard beats anything `vercel.json` says, so the
 copy is what makes the deployment independent of a setting nobody can see from

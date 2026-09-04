@@ -15,7 +15,8 @@
     "test:db": "./scripts/db-check.sh",
     "sync:engine": "./scripts/sync-engine.sh",
     "functions:serve": "pnpm sync:engine && supabase functions serve",
-    "functions:deploy": "pnpm sync:engine && supabase functions deploy"
+    "functions:deploy": "pnpm sync:engine && supabase functions deploy",
+    "vercel:build": "pnpm --filter web build && rm -rf dist && mkdir -p dist && cp -R web/dist/. dist/"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
