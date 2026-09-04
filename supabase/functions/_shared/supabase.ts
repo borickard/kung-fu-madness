@@ -41,7 +41,9 @@ export async function requireUser(req: Request, admin: SupabaseClient): Promise<
   // function needs no publishable key of its own — the CLI does not inject one.
   const token = authorization.replace(/^Bearer\s+/i, '');
   const { data, error } = await admin.auth.getUser(token);
-  if (error || !data.user) throw new HttpError(401, 'not signed in');
+  // Say why, or a bad key looks exactly like a missing login.
+  if (error) throw new HttpError(401, `not signed in: ${error.message}`);
+  if (!data.user) throw new HttpError(401, 'not signed in: no user for that token');
   return { id: data.user.id };
 }
 

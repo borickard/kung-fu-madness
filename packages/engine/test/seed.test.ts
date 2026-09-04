@@ -6,10 +6,11 @@ import { MOVES } from '../src/balance.ts';
  * The `moves` table is the one place a balance value is copied out of the
  * engine. This test is what keeps the copy honest.
  */
-const SEED = new URL('../../../supabase/seed.sql', import.meta.url).pathname;
+const CATALOG = new URL('../../../supabase/migrations/0005_move_catalog.sql', import.meta.url)
+  .pathname;
 
-describe('supabase seed', () => {
-  const sql = readFileSync(SEED, 'utf8');
+describe('the moves migration', () => {
+  const sql = readFileSync(CATALOG, 'utf8');
 
   it('lists every move exactly as the balance module has it', () => {
     const rows = [...sql.matchAll(/^\s*\((\d+), '([^']+)',([^)]+)\)/gm)].map((match) => {

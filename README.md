@@ -101,3 +101,55 @@ deno check --config supabase/functions/deno.json supabase/functions/*/index.ts
 The one copy — the `moves` table seed — is pinned by a test that fails the
 moment the two disagree. SQL holds no starting stat, no cost and no deadline:
 they arrive from the engine through an edge function.
+
+## Deploying
+
+The web app is a static build; everything with state lives in a hosted Supabase
+project. Create one at supabase.com and take its **project ref** from the
+dashboard URL (`https://supabase.com/dashboard/project/<ref>`).
+
+Push the schema and the functions from the repository root:
+
+```bash
+pnpm supabase login
+pnpm supabase link --project-ref <ref>
+pnpm supabase db push
+pnpm functions:deploy
+```
+
+`db push` applies `supabase/migrations/` in order, which is why the move
+catalog and the practice bots are migrations rather than seed data — the seed
+never runs against a hosted project.
+
+In the Supabase dashboard, under Authentication:
+
+- Set **Site URL** to the Vercel domain, and add it to **Redirect URLs**.
+- Under Providers → Email, turn **Confirm email** off unless you have configured
+  SMTP. With it on, nobody can sign up without a working mail sender.
+
+In Vercel, under Settings → Environment Variables, add both and then redeploy.
+Vite bakes these in at build time, so a variable added after a build does not
+reach the running site until the next one:
+
+| name | value |
+|---|---|
+| `VITE_SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | the project's publishable key (`sb_publishable_…`) |
+
+The publishable key is meant to be public — RLS is what protects the data. The
+secret key belongs only in the Supabase project's own function environment,
+never in Vercel and never in the browser bundle.
+
+`vercel.json` carries the build command, the output directory and the rewrite
+that keeps client-side routes working on a hard refresh. If the Vercel project
+has a Root Directory set to `web`, clear it: the build runs from the repository
+root so the workspace can resolve `engine`.
+
+Deadlines only need sweeping if a human abandons a battle; bots answer
+instantly. To automate it, schedule `sweep-deadlines` from the dashboard under
+Integrations → Cron, or call it yourself:
+
+```bash
+curl -X POST "https://<ref>.supabase.co/functions/v1/sweep-deadlines" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
+```
