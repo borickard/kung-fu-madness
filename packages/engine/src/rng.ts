@@ -39,9 +39,12 @@ export function makeRng(seed: bigint | number | string, round_no: number): Rng {
   };
 }
 
-/** A battle seed, produced outside the engine and stored on the battle row. */
+/**
+ * A battle seed, produced outside the engine and stored on the battle row.
+ * Kept under 2^53 so it survives a trip through JSON as a plain number.
+ */
 export function randomSeed(randomSource: () => number): bigint {
-  const hi = BigInt(Math.floor(randomSource() * 0x100000000));
-  const lo = BigInt(Math.floor(randomSource() * 0x100000000));
-  return ((hi << 32n) | lo) & 0x7fffffffffffffffn;
+  const hi = BigInt(Math.floor(randomSource() * 0x200000)); // 21 bits
+  const lo = BigInt(Math.floor(randomSource() * 0x100000000)); // 32 bits
+  return (hi << 32n) | lo;
 }

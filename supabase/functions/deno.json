@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "engine": "../../packages/engine/src/index.ts",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.58.0"
+  },
+  "lock": false
+}
